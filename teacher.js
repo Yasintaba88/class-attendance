@@ -384,15 +384,7 @@ document
   .getElementById("loginBtn")
   .onclick = () => {
 
-    /*
-      رمز فعلی را در کد قبلی خودت نگه داشتی.
-      برای امنیت، رمز واقعی را در پاسخ تکرار نمی‌کنم.
-      
-      مقدار داخل PASSWORD را با همان رمز قبلی خودت
-      در نسخه‌ای که در GitHub می‌گذاری قرار بده.
-    */
-
-    const PASSWORD = "رمز_قبلی_خودت";
+    const PASSWORD = "19121912";
 
     const entered =
       document.getElementById("pass").value;
