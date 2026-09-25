@@ -1,38 +1,13 @@
 const db = supabaseClient;
 
-const today = () => {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-};
-
-const toMin = (t) => {
-  if (!t) return 0;
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-};
-
-const nowMin = () => {
-  const d = new Date();
-  return d.getHours() * 60 + d.getMinutes();
-};
-
-const toast = (msg) => {
-  const e = document.getElementById("toast");
-  e.textContent = msg;
-  e.classList.remove("hidden");
-
-  setTimeout(() => {
-    e.classList.add("hidden");
-  }, 2600);
-};
-
-
 // ===============================
-// تنظیمات اولیه
+// تنظیمات
 // ===============================
+
+const MAX_STUDENTS = 29;
+
+//
+const PASSWORD = "19121912";
 
 let settings = {
   start: "08:00",
@@ -42,188 +17,35 @@ let settings = {
 
 let students = [];
 
-const MAX_STUDENTS = 29;
-
-
 // ===============================
-// دریافت تنظیمات حضور
+// ابزارها
 // ===============================
 
-async function loadSettings() {
+function today() {
+  const d = new Date();
 
-  const { data, error } = await db
-    .from("attendance_settings")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
 
-  if (error) {
-    console.error(error);
-    toast("خطا در دریافت تنظیمات حضور");
-    return;
-  }
-
-  if (data) {
-    settings = {
-      start: data.start_time || "08:00",
-      end: data.end_time || "08:30",
-      open: data.is_open ?? true
-    };
-  }
-
-  render();
+  return `${y}-${m}-${day}`;
 }
 
+function toMin(time) {
+  if (!time) return 0;
 
-// ===============================
-// دریافت دانش‌آموزان
-// ===============================
+  const [h, m] = time.split(":").map(Number);
 
-async function loadStudents() {
-
-  const { data, error } = await db
-    .from("students")
-    .select("id,name,student_number")
-    .order("student_number", {
-      ascending: true
-    });
-
-  if (error) {
-    console.error(error);
-    toast("خطا در دریافت اسامی دانش‌آموزان");
-    return;
-  }
-
-  students = data || [];
-
-  render();
+  return h * 60 + m;
 }
 
+function nowMin() {
+  const d = new Date();
 
-// ===============================
-// نمایش پنل
-// ===============================
-
-function render() {
-
-  const start = document.getElementById("start");
-  const end = document.getElementById("end");
-
-  if (start) start.value = settings.start;
-  if (end) end.value = settings.end;
-
-
-  const switchBtn =
-    document.getElementById("switch");
-
-  if (switchBtn) {
-
-    switchBtn.textContent =
-      settings.open
-        ? "بستن حضور"
-        : "باز کردن حضور";
-
-    switchBtn.className =
-      settings.open
-        ? "danger"
-        : "";
-  }
-
-
-  const current = nowMin();
-
-  const live =
-    settings.open &&
-    current >= toMin(settings.start) &&
-    current <= toMin(settings.end);
-
-
-  const liveStatus =
-    document.getElementById("liveStatus");
-
-  if (liveStatus) {
-
-    liveStatus.className =
-      "status " + (live ? "open" : "closed");
-
-    liveStatus.textContent =
-      live
-        ? "🟢 پنجره حضور باز است"
-        : "🔴 پنجره حضور بسته است";
-  }
-
-
-  const date =
-    document.getElementById("date");
-
-  if (date) {
-
-    date.textContent =
-      "امروز: " +
-      new Date().toLocaleDateString("fa-IR");
-  }
-
-
-  const link =
-    document.getElementById("studentLink");
-
-  if (link) {
-
-    link.textContent =
-      location.href
-        .replace("teacher.html", "student.html");
-  }
-
-
-  renderNameInputs();
+  return d.getHours() * 60 + d.getMinutes();
 }
 
-
-// ===============================
-// ساخت ۲۹ جای نام
-// ===============================
-
-function renderNameInputs() {
-
-  const box =
-    document.getElementById("names");
-
-  if (!box) return;
-
-  box.innerHTML = "";
-
-  for (let i = 1; i <= MAX_STUDENTS; i++) {
-
-    const student =
-      students.find(
-        s => Number(s.student_number) === i
-      );
-
-    const name =
-      student ? student.name : "";
-
-    const item =
-      document.createElement("div");
-
-    item.className = "name-item";
-
-    item.innerHTML = `
-      <span>${i}.</span>
-      <input
-        data-number="${i}"
-        value="${escapeHtml(name)}"
-        placeholder="نام دانش‌آموز"
-      >
-    `;
-
-    box.appendChild(item);
-  }
-}
-
-
-// جلوگیری از ورود HTML داخل نام
 function escapeHtml(value) {
-
   return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -232,13 +54,188 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function toast(message) {
+  const element = document.getElementById("toast");
+
+  if (!element) {
+    alert(message);
+    return;
+  }
+
+  element.textContent = message;
+  element.classList.remove("hidden");
+
+  setTimeout(() => {
+    element.classList.add("hidden");
+  }, 3000);
+}
 
 // ===============================
-// گزارش حضور امروز
+// لینک دانش‌آموز
 // ===============================
 
-async function loadRecords() {
+function getStudentLink() {
+  const url = new URL("student.html", window.location.href);
+  return url.href;
+}
 
+function renderStudentLink() {
+  const element = document.getElementById("studentLink");
+
+  if (!element) return;
+
+  element.textContent = getStudentLink();
+}
+
+// ===============================
+// دریافت تنظیمات
+// ===============================
+
+async function loadSettings() {
+  const { data, error } = await db
+    .from("attendance_settings")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Settings error:", error);
+    toast("خطا در دریافت تنظیمات حضور");
+    return;
+  }
+
+  if (data) {
+    settings.start = data.start_time || "08:00";
+    settings.end = data.end_time || "08:30";
+    settings.open = data.is_open ?? true;
+  }
+
+  renderSettings();
+}
+
+// ===============================
+// دریافت دانش‌آموزان
+// ===============================
+
+async function loadStudents() {
+  const { data, error } = await db
+    .from("students")
+    .select("id,name,student_number")
+    .order("student_number", {
+      ascending: true
+    });
+
+  if (error) {
+    console.error("Students error:", error);
+    toast("خطا در دریافت اسامی دانش‌آموزان");
+    return;
+  }
+
+  students = data || [];
+
+  renderNameInputs();
+  renderRecordsFromDatabase();
+}
+
+// ===============================
+// نمایش تنظیمات
+// ===============================
+
+function renderSettings() {
+  const start = document.getElementById("start");
+  const end = document.getElementById("end");
+  const switchButton = document.getElementById("switch");
+  const liveStatus = document.getElementById("liveStatus");
+  const date = document.getElementById("date");
+
+  if (start) {
+    start.value = settings.start;
+  }
+
+  if (end) {
+    end.value = settings.end;
+  }
+
+  if (switchButton) {
+    switchButton.textContent = settings.open
+      ? "بستن حضور"
+      : "باز کردن حضور";
+
+    switchButton.className = settings.open
+      ? "danger"
+      : "secondary";
+  }
+
+  const current = nowMin();
+
+  const live =
+    settings.open &&
+    current >= toMin(settings.start) &&
+    current <= toMin(settings.end);
+
+  if (liveStatus) {
+    liveStatus.className =
+      "status " + (live ? "open" : "closed");
+
+    liveStatus.textContent = live
+      ? "🟢 پنجره حضور باز است"
+      : "🔴 پنجره حضور بسته است";
+  }
+
+  if (date) {
+    date.textContent =
+      "امروز: " +
+      new Date().toLocaleDateString("fa-IR");
+  }
+
+  renderStudentLink();
+}
+
+// ===============================
+// ساخت ۲۹ کادر اسم
+// ===============================
+
+function renderNameInputs() {
+  const box = document.getElementById("names");
+
+  if (!box) {
+    console.error("Element #names not found");
+    return;
+  }
+
+  box.innerHTML = "";
+
+  for (let i = 1; i <= MAX_STUDENTS; i++) {
+    const student = students.find(
+      item => Number(item.student_number) === i
+    );
+
+    const name = student ? student.name : "";
+
+    const item = document.createElement("div");
+
+    item.className = "name-item";
+
+    item.innerHTML = `
+      <span>${i}.</span>
+
+      <input
+        type="text"
+        data-number="${i}"
+        value="${escapeHtml(name)}"
+        placeholder="نام دانش‌آموز شماره ${i}"
+      >
+    `;
+
+    box.appendChild(item);
+  }
+}
+
+// ===============================
+// دریافت گزارش حضور
+// ===============================
+
+async function loadRecordsFromDatabase() {
   const { data, error } = await db
     .from("attendance")
     .select(`
@@ -246,36 +243,27 @@ async function loadRecords() {
       student_id,
       attendance_time,
       status,
-      delay_minutes,
-      students (
-        id,
-        name,
-        student_number
-      )
+      delay_minutes
     `)
     .eq("attendance_date", today());
 
   if (error) {
-
-    console.error(error);
-
+    console.error("Attendance error:", error);
     toast("خطا در دریافت گزارش حضور");
-
-    return;
+    return [];
   }
 
-  renderRecords(data || []);
+  return data || [];
 }
 
-
 // ===============================
-// نمایش گزارش
+// نمایش گزارش حضور
 // ===============================
 
-function renderRecords(records) {
+async function renderRecordsFromDatabase() {
+  const records = await loadRecordsFromDatabase();
 
-  const list =
-    document.getElementById("list");
+  const list = document.getElementById("list");
 
   if (!list) return;
 
@@ -284,51 +272,40 @@ function renderRecords(records) {
   let present = 0;
   let late = 0;
 
-
   for (let i = 1; i <= MAX_STUDENTS; i++) {
+    const student = students.find(
+      item => Number(item.student_number) === i
+    );
 
-    const student =
-      students.find(
-        s => Number(s.student_number) === i
+    const name = student
+      ? student.name
+      : `دانش‌آموز ${i}`;
+
+    let record = null;
+
+    if (student) {
+      record = records.find(
+        item =>
+          Number(item.student_id) ===
+          Number(student.id)
       );
+    }
 
-    const name =
-      student
-        ? student.name
-        : `دانش‌آموز ${i}`;
-
-
-    const record =
-      student
-        ? records.find(
-            r =>
-              Number(r.student_id) ===
-              Number(student.id)
-          )
-        : null;
-
-
-    let cls = "notset";
+    let className = "notset";
     let text = "ثبت نشده";
 
-
     if (record) {
-
       if (Number(record.delay_minutes) > 0) {
-
         late++;
 
-        cls = "late";
+        className = "late";
 
         text =
           `تأخیر ${record.delay_minutes} دقیقه`;
-      }
-
-      else {
-
+      } else {
         present++;
 
-        cls = "present";
+        className = "present";
 
         const time =
           new Date(record.attendance_time)
@@ -337,36 +314,29 @@ function renderRecords(records) {
               minute: "2-digit"
             });
 
-        text =
-          `حضور • ${time}`;
+        text = `حضور • ${time}`;
       }
     }
 
-
-    const row =
-      document.createElement("div");
+    const row = document.createElement("div");
 
     row.className = "student-row";
 
     row.innerHTML = `
       <b>${escapeHtml(name)}</b>
-      <span class="badge ${cls}">
-        ${text}
+
+      <span class="badge ${className}">
+        ${escapeHtml(text)}
       </span>
     `;
 
     list.appendChild(row);
   }
 
-
-  const count =
-    document.getElementById("count");
+  const count = document.getElementById("count");
 
   if (count) {
-
-    const registered =
-      present + late;
-
+    const registered = present + late;
     const notRegistered =
       MAX_STUDENTS - registered;
 
@@ -375,307 +345,320 @@ function renderRecords(records) {
   }
 }
 
-
 // ===============================
 // ورود معلم
 // ===============================
 
-document
-  .getElementById("loginBtn")
-  .onclick = () => {
+const loginButton =
+  document.getElementById("loginBtn");
 
-    const PASSWORD = "19121912";
-
+if (loginButton) {
+  loginButton.addEventListener("click", async () => {
     const entered =
       document.getElementById("pass").value;
 
-
-    if (entered === PASSWORD) {
-
-      document
-        .getElementById("login")
-        .classList.add("hidden");
-
-      document
-        .getElementById("dashboard")
-        .classList.remove("hidden");
-
-      loadStudents();
-      loadSettings();
-      loadRecords();
-
-    } else {
-
+    if (entered !== PASSWORD) {
       toast("رمز پنل اشتباه است.");
+      return;
     }
-  };
 
+    document
+      .getElementById("login")
+      .classList.add("hidden");
+
+    document
+      .getElementById("dashboard")
+      .classList.remove("hidden");
+
+    toast("ورود موفق بود.");
+
+    await loadStudents();
+    await loadSettings();
+
+    renderNameInputs();
+    renderStudentLink();
+  });
+}
 
 // ===============================
-// ذخیره زمان حضور
+// ذخیره زمان
 // ===============================
 
-document
-  .getElementById("saveTime")
-  .onclick = async () => {
+const saveTimeButton =
+  document.getElementById("saveTime");
 
-    const start =
-      document.getElementById("start").value;
+if (saveTimeButton) {
+  saveTimeButton.addEventListener(
+    "click",
+    async () => {
+      const start =
+        document.getElementById("start").value;
 
-    const end =
-      document.getElementById("end").value;
+      const end =
+        document.getElementById("end").value;
 
+      if (!start || !end) {
+        toast("لطفاً هر دو ساعت را وارد کنید.");
+        return;
+      }
 
-    if (!start || !end) {
+      if (toMin(end) < toMin(start)) {
+        toast("ساعت پایان نمی‌تواند قبل از شروع باشد.");
+        return;
+      }
 
-      toast("لطفاً هر دو ساعت را وارد کنید.");
+      const { error } = await db
+        .from("attendance_settings")
+        .update({
+          start_time: start,
+          end_time: end
+        })
+        .eq("id", 1);
 
-      return;
+      if (error) {
+        console.error(error);
+        toast("ذخیره زمان انجام نشد.");
+        return;
+      }
+
+      settings.start = start;
+      settings.end = end;
+
+      renderSettings();
+
+      toast("زمان حضور ذخیره شد.");
     }
-
-
-    if (toMin(end) < toMin(start)) {
-
-      toast("ساعت پایان نمی‌تواند قبل از شروع باشد.");
-
-      return;
-    }
-
-
-    const { error } = await db
-      .from("attendance_settings")
-      .update({
-        start_time: start,
-        end_time: end
-      })
-      .eq("id", 1);
-
-
-    if (error) {
-
-      console.error(error);
-
-      toast("ذخیره زمان انجام نشد.");
-
-      return;
-    }
-
-
-    settings.start = start;
-    settings.end = end;
-
-    render();
-
-    toast("زمان حضور ذخیره شد.");
-  };
-
+  );
+}
 
 // ===============================
 // باز / بسته کردن حضور
 // ===============================
 
-document
-  .getElementById("switch")
-  .onclick = async () => {
+const switchButton =
+  document.getElementById("switch");
 
-    const newState =
-      !settings.open;
+if (switchButton) {
+  switchButton.addEventListener(
+    "click",
+    async () => {
+      const newState = !settings.open;
 
+      const { error } = await db
+        .from("attendance_settings")
+        .update({
+          is_open: newState
+        })
+        .eq("id", 1);
 
-    const { error } = await db
-      .from("attendance_settings")
-      .update({
-        is_open: newState
-      })
-      .eq("id", 1);
+      if (error) {
+        console.error(error);
+        toast("تغییر وضعیت انجام نشد.");
+        return;
+      }
 
+      settings.open = newState;
 
-    if (error) {
+      renderSettings();
 
-      console.error(error);
-
-      toast("تغییر وضعیت انجام نشد.");
-
-      return;
-    }
-
-
-    settings.open = newState;
-
-    render();
-
-    toast(
-      newState
-        ? "حضور و غیاب باز شد."
-        : "حضور و غیاب بسته شد."
-    );
-  };
-
-
-// ===============================
-// ذخیره نام‌ها
-// ===============================
-
-document
-  .getElementById("saveNames")
-  .onclick = async () => {
-
-    const inputs =
-      document.querySelectorAll(
-        "#names input"
+      toast(
+        newState
+          ? "حضور و غیاب باز شد."
+          : "حضور و غیاب بسته شد."
       );
+    }
+  );
+}
 
+// ===============================
+// ذخیره ۲۹ اسم
+// ===============================
 
-    const enteredNumbers = [];
+const saveNamesButton =
+  document.getElementById("saveNames");
 
+if (saveNamesButton) {
+  saveNamesButton.addEventListener(
+    "click",
+    async () => {
+      const inputs =
+        document.querySelectorAll(
+          "#names input"
+        );
 
-    for (const input of inputs) {
+      if (inputs.length !== MAX_STUDENTS) {
+        renderNameInputs();
+        toast("۲۹ کادر نام آماده شد.");
+        return;
+      }
 
-      const number =
-        Number(input.dataset.number);
+      saveNamesButton.disabled = true;
+      saveNamesButton.textContent = "در حال ذخیره...";
 
-      const name =
-        input.value.trim();
+      try {
+        const enteredNumbers = [];
 
+        for (const input of inputs) {
+          const number =
+            Number(input.dataset.number);
 
-      if (name) {
+          const name =
+            input.value.trim();
 
-        enteredNumbers.push(number);
+          if (!name) continue;
 
+          enteredNumbers.push(number);
 
-        const { error } = await db
-          .from("students")
-          .upsert(
-            {
-              name: name,
-              student_number: number
-            },
-            {
-              onConflict: "student_number"
+          const { error } = await db
+            .from("students")
+            .upsert(
+              {
+                name: name,
+                student_number: number
+              },
+              {
+                onConflict: "student_number"
+              }
+            );
+
+          if (error) {
+            console.error(error);
+
+            toast(
+              `خطا در ذخیره دانش‌آموز شماره ${number}`
+            );
+
+            return;
+          }
+        }
+
+        // حذف نام‌هایی که پاک شده‌اند
+        for (const student of students) {
+          const number =
+            Number(student.student_number);
+
+          if (!enteredNumbers.includes(number)) {
+            const { error } = await db
+              .from("students")
+              .delete()
+              .eq("id", student.id);
+
+            if (error) {
+              console.error(error);
+              toast("خطا در حذف نام خالی.");
+              return;
             }
-          );
-
-
-        if (error) {
-
-          console.error(error);
-
-          toast(
-            `خطا در ذخیره دانش‌آموز شماره ${number}`
-          );
-
-          return;
+          }
         }
+
+        await loadStudents();
+
+        toast("✅ نام دانش‌آموزان ذخیره شد.");
+      } finally {
+        saveNamesButton.disabled = false;
+        saveNamesButton.textContent =
+          "ذخیره نام‌ها";
       }
     }
-
-
-    // حذف جایگاه‌هایی که نامشان پاک شده است
-
-    for (const student of students) {
-
-      const number =
-        Number(student.student_number);
-
-      if (!enteredNumbers.includes(number)) {
-
-        const { error } = await db
-          .from("students")
-          .delete()
-          .eq("id", student.id);
-
-
-        if (error) {
-
-          console.error(error);
-
-          toast("خطا در حذف نام خالی.");
-
-          return;
-        }
-      }
-    }
-
-
-    await loadStudents();
-    await loadRecords();
-
-    toast("نام دانش‌آموزان ذخیره شد.");
-  };
-
+  );
+}
 
 // ===============================
 // پاک‌سازی حضور امروز
 // ===============================
 
-document
-  .getElementById("reset")
-  .onclick = async () => {
+const resetButton =
+  document.getElementById("reset");
 
-    const ok =
-      confirm(
+if (resetButton) {
+  resetButton.addEventListener(
+    "click",
+    async () => {
+      const ok = confirm(
         "آیا مطمئن هستید که حضورهای امروز پاک شوند؟"
       );
 
-    if (!ok) return;
+      if (!ok) return;
 
+      const { error } = await db
+        .from("attendance")
+        .delete()
+        .eq("attendance_date", today());
 
-    const { error } = await db
-      .from("attendance")
-      .delete()
-      .eq("attendance_date", today());
+      if (error) {
+        console.error(error);
+        toast("پاک‌سازی انجام نشد.");
+        return;
+      }
 
+      await renderRecordsFromDatabase();
 
-    if (error) {
-
-      console.error(error);
-
-      toast("پاک‌سازی انجام نشد.");
-
-      return;
+      toast("حضورهای امروز پاک شدند.");
     }
-
-
-    await loadRecords();
-
-    toast("حضورهای امروز پاک شدند.");
-  };
-
+  );
+}
 
 // ===============================
-// کپی لینک دانش‌آموزان
+// کپی لینک دانش‌آموز
 // ===============================
 
-document
-  .getElementById("copyLink")
-  .onclick = async () => {
+const copyLinkButton =
+  document.getElementById("copyLink");
 
-    const link =
-      location.href
-        .replace("teacher.html", "student.html");
+if (copyLinkButton) {
+  copyLinkButton.addEventListener(
+    "click",
+    async () => {
+      const link = getStudentLink();
 
+      try {
+        await navigator.clipboard.writeText(link);
 
-    try {
+        toast("✅ لینک دانش‌آموزان کپی شد.");
+      } catch (error) {
+        console.error(error);
 
-      await navigator.clipboard.writeText(link);
+        // روش جایگزین برای گوشی
+        const textarea =
+          document.createElement("textarea");
 
-      toast("لینک دانش‌آموزان کپی شد.");
+        textarea.value = link;
 
-    } catch {
+        document.body.appendChild(textarea);
 
-      toast("کپی لینک انجام نشد.");
+        textarea.select();
+
+        document.execCommand("copy");
+
+        textarea.remove();
+
+        toast("✅ لینک کپی شد.");
+      }
     }
-  };
-
+  );
+}
 
 // ===============================
-// به‌روزرسانی خودکار
+// شروع اولیه
 // ===============================
 
-setInterval(() => {
+renderStudentLink();
 
-  loadSettings();
-  loadStudents();
-  loadRecords();
+// ===============================
+// بروزرسانی خودکار
+// ===============================
+
+setInterval(async () => {
+  if (
+    document
+      .getElementById("dashboard")
+      ?.classList.contains("hidden")
+  ) {
+    return;
+  }
+
+  await loadSettings();
+  await loadStudents();
+  await renderRecordsFromDatabase();
 
 }, 15000);
